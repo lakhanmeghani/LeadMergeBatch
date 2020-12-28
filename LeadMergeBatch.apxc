@@ -1,0 +1,61 @@
+global class leadMergeBatch implements Database.Batchable<sObject> {   
+    public String queryString;
+    global Database.QueryLocator start(Database.BatchableContext BC) {
+        queryString = 'SELECT Id, email,isConverted FROM lead  where email !=null and isConverted = false ORDER BY CreatedDate ASC';
+        // system.debug(queryString);
+        return Database.getQueryLocator(queryString);
+    }
+    global void execute(Database.BatchableContext BC, List<lead> scope) {        
+        Map<String,List<lead>> leadMap = new Map<String,List<lead>>();
+        Set<String> emailSet = new Set<String>();
+        for(lead a :scope){
+            if(a.email!= null){
+                emailSet.add(a.email.toLowerCase());
+                // system.debug(emailSet);
+            }
+        }
+        String sobjectApiName = 'lead';
+        Map<String, Schema.SObjectType> schemaMap = Schema.getGlobalDescribe();
+        Map<String, Schema.SObjectField> fieldMap = schemaMap.get(SobjectApiName).getDescribe().fields.getMap();
+        List<String> fieleList = new List<String>();
+        for(String fieldName : fieldMap.keySet()){
+            Schema.DescribeFieldResult fieldResult = fieldMap.get(fieldName).getDescribe();
+            if(!fieldResult.isCalculated() && fieldResult.isCreateable() && !fieldResult.isExternalId() ){
+                if(fieldName != 'isConverted'){
+                    fieleList.add(fieldName);
+                }
+            }
+        }       
+        String fetchFields = 'SELECT '+String.join(fieleList,',')+' FROM '+sobjectApiName+' WHERE email IN :emailSet ORDER BY CreatedDate ASC ';
+        integer i = 1;
+        for(lead a : Database.query(fetchFields)){
+            String key = a.email;
+            key = key.toLowerCase();
+            // map of email vs lead 
+            if(leadMap.containsKey(key)){
+                leadMap.get(key).add(a);
+            }else {
+                leadMap.put(key,new List<Lead>{a});
+            }
+            i++;
+        }
+        //  System.debug('i >'+i);
+        // System.debug('leadMap >> '+leadMap);
+        List<Lead> mergeList;        
+        for(String key : leadMap.keySet()){
+            //  System.debug('Size >>'+ leadMap.get(key).size());
+            if(leadMap.get(key).size()>1 && leadMap.get(key).size() <4){
+                mergeList = new List<lead>();
+                lead masterLead = leadMap.get(key)[0];
+                mergeList.addAll(leadMap.get(key));
+                mergeList.remove(0);
+                //  System.debug('mergeList >> '+mergeList);
+                for(lead a : mergeList){
+                    Database.MergeResult mergeResult = Database.merge(masterLead, a, true);
+                }
+            }
+        }
+    }   
+    global void finish(Database.BatchableContext BC) {
+        
+    }}
