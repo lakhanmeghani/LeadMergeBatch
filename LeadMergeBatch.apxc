@@ -44,7 +44,7 @@ global class leadMergeBatch implements Database.Batchable<sObject> {
         List<Lead> mergeList;        
         for(String key : leadMap.keySet()){
             //  System.debug('Size >>'+ leadMap.get(key).size());
-            if(leadMap.get(key).size()>1 && leadMap.get(key).size() <4){
+            if(leadMap.get(key).size()>1 && leadMap.get(key).size() <3){
                 mergeList = new List<lead>();
                 lead masterLead = leadMap.get(key)[0];
                 mergeList.addAll(leadMap.get(key));
