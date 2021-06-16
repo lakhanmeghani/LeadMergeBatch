@@ -1,0 +1,35 @@
+@isTest
+public class leadMergeBatchTest {
+    static testMethod void insertLead_Test(){ 
+        lead master = new lead(FirstName='Test', LastName='Lead', Company='Test LeadActivity1', Status='Attempting Contact', LeadSource='Conference', email = 'lakhan.14@thinqloud.com', CreatedDate = system.today().addDays(-100));
+        insert master;
+        task formFillTask = new task();
+        formFillTask.WhoId = master.Id;
+        formFillTask.Subject = 'Form Submit';
+        formFillTask.Activity_Type__c = 'Form Fill';
+        formFillTask.description = 'Leadsource: Web Lead' + 
+            'Lead Source Detail: Test';
+        
+        formFillTask.CreatedDate = system.today().addDays(-90);
+        formFillTask.ActivityDate = system.today().addDays(-270);
+        insert formFillTask; 
+        
+        List<lead> duplicates = new List<lead>{new lead(FirstName='Test', LastName='Lead', Company='Test LeadActivity2', Status='Attempting Contact', LeadSource='Conference', email = 'lakhan.14@thinqloud.com', CreatedDate = system.today().addDays(-211)  ), 
+           									new lead(FirstName='Test', LastName='Lead', Company='Test LeadABC', Status='Attempting Contact', LeadSource='Conference', email = 'lakhan.14@thinqloud.com', CreatedDate = system.today().addDays(-190)  )};
+           
+   		
+        Database.DMLOptions dml = new Database.DMLOptions(); 
+        dml.DuplicateRuleHeader.allowSave = true;
+        dml.DuplicateRuleHeader.runAsCurrentUser = true; 
+        list<Database.SaveResult> sr = Database.Insert(duplicates, dml ); 
+        
+     //   Database.MergeResult[] results = Database.merge(master, duplicates, false); 
+        Test.startTest();
+        
+        
+        leadMergeBatch obj = new leadMergeBatch();
+        DataBase.executeBatch(obj); 
+        Test.stopTest();
+        
+    }
+}
